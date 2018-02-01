@@ -17,6 +17,7 @@ using namespace goofy;
 bool bumperL = 0, bumperC = 0, bumperR = 0;
 double lRange = 10;
 int lSize = 0, lOffset = 0, dAngle = 5;
+sensor_msgs::LaserScan::ConstPtr curr_scan;
 
 void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr& msg){
 	if(msg->bumper == 0)
@@ -29,6 +30,9 @@ void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr& msg){
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 
+	// Print statement to test checkObstacle() - remove later
+	// std::cout << "Check Obstacle:" << goofy::planner::PrimitivePlanner::checkObstacle(msg, 1, 0.25) << endl;
+	
 	lSize = (msg->angle_max -msg->angle_min)/msg->angle_increment;
 	lOffset = dAngle*Pi/(180*msg->angle_increment);
 	lRange = 11;
@@ -46,8 +50,12 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		}
 	}
 
-	if (lRange == 11)
+	if (lRange == 11){
 		lRange = 0;
+	}
+
+	curr_scan = msg;
+	return;
 }
 
 int main(int argc, char **argv)
@@ -68,11 +76,13 @@ int main(int argc, char **argv)
 	common::BasicMotion straight{1, 0, 6000};
 	common::BasicMotion turn_left{1,0.3, 6000};
 	common::BasicMotion turn_right{1.,-0.3, 6000};
+	common::BasicMotion on_spot{0, 0.3, 6000};
 
 	planner::MotionList motions;
 	motions.push_back(straight);
 	motions.push_back(turn_left);
 	motions.push_back(turn_right);
+	motions.push_back(on_spot);
 
 	//Setup Planner
 	planner::PrimitiveRepresentation primitives(robot, motions);
@@ -82,8 +92,15 @@ int main(int argc, char **argv)
 	double angular = 0.0;
 	double linear = 0.0;
 	geometry_msgs::Twist vel;
+	
+	while (!curr_scan){
+		ros::spinOnce();
+	}
 
-	random_planner.runIteration();
+	if(curr_scan){
+		random_planner.updateLaserScan(curr_scan);		
+		random_planner.runIteration();
+	}
 
 	while(ros::ok()){
 		ros::spinOnce();
@@ -91,23 +108,22 @@ int main(int argc, char **argv)
 		eStop.block();
 		//...................................
 
-		//fill with your code
 
 		// Update bumper values in random_planner
 		random_planner.bumperLeft = bumperL;
-		random_planner.bumperCenter = !bumperC;
-		random_planner.bumperRight = !bumperR;
+		random_planner.bumperCenter = bumperC;
+		random_planner.bumperRight = bumperR;
 
 		// Update laser values in random_planner
-		random_planner.laserRange = lRange;
-		random_planner.laserSize = lSize;
-		random_planner.laserOffset = lOffset;
-		random_planner.desiredAngle = dAngle;
+		if(curr_scan) {
+			random_planner.updateLaserScan(curr_scan);
+		}
 
 		// Continuously get random paths
 		nav_msgs::Path path = random_planner.getPath();
 		vis.publishPath(path, std::chrono::milliseconds(10));
-		if (!random_planner.getVelocity(vel)){
+		if (!random_planner.getVelocity(vel) && curr_scan){
+			random_planner.updateLaserScan(curr_scan);			
 			random_planner.runIteration();
 			std::cout << "Getting new plan!" << std::endl;
 		}
