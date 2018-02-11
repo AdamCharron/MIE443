@@ -10,12 +10,45 @@ namespace mapper{
 struct Slope {
 	double rise;
 	double run;
+	double angle;
+};
+struct gridIndex {
+	int row;
+	int col;
+
+	gridIndex(int _row, int _col) :
+			row(_row), col(_col) {
+	}
+
+	gridIndex() : row(0), col(0) {
+	}
+};
+struct gridDFSElement {
+	int data;
+	gridIndex index;
+	bool isDiscovered;
+	vector<gridIndex> adjList;
 };
 
-geometry_msgs::Pose2D getCoordinateRayCasting(nav_msgs::OccupancyGrid grid, Slope slope, int robotRow, int robotCol);
+geometry_msgs::Pose2D getCoordinateRayCasting(nav_msgs::OccupancyGrid grid, Slope slope, int robotRow, int robotCol, geometry_msgs::Pose2D robotPos);
 vector<vector<int>> getMatrixFromGrid(nav_msgs::OccupancyGrid grid);
 Slope getClosestAxisToHeading(double theta);
-int getAngle(int* angleChange);
+double getAngle(int* angleChange);
+bool isZero(double value);
+int convertToDegree(double rad);
+geometry_msgs::Pose2D convertToLocal(geometry_msgs::Pose2D coord, geometry_msgs::Pose2D robPos);
+geometry_msgs::Pose2D getCoordinateFromMap(int row, int col, nav_msgs::OccupancyGrid grid);
+
+// Depth search functions
+geometry_msgs::Pose2D getCoordinateDFS(nav_msgs::OccupancyGrid grid, Slope slope, int robotRow, int robotCol, geometry_msgs::Pose2D robotPos);
+geometry_msgs::Pose2D getCoordinateBFS(nav_msgs::OccupancyGrid grid, Slope slope, int robotRow, int robotCol, geometry_msgs::Pose2D robotPos);
+
+vector<vector<gridDFSElement>> getMatrixFromGridDFS(nav_msgs::OccupancyGrid grid, Slope slope);
+vector<gridIndex> fillAdjList(vector<vector<gridDFSElement>> matrix, int i, int j, Slope slope, int height, int width);
+void pushBackNegX(vector<gridIndex> &v, int i, int j);
+void pushBackPosX(vector<gridIndex> &v, int i, int j, int width);
+void pushBackNegY(vector<gridIndex> &v, int i, int j);
+void pushBackPosY(vector<gridIndex> &v, int i, int j, int height);
 
 }}
 

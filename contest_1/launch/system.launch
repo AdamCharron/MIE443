@@ -1,0 +1,18 @@
+<launch>
+	<env name="ROSCONSOLE_CONFIG_FILE" value="$(find mie443_contest1)/config/rosconsole.conf" />
+	<arg name="camera" default="camera" />q
+	<arg name="depth" default="depth" />
+	<node pkg="mie443_contest1" type="depth_processor" name="depth_processing" output="screen" />
+	<node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="corr_scan" output="screen">
+      <!-- Pixel rows to use to generate the laserscan. For each column, the scan will
+           return the minimum value for those pixels centered vertically in the image. -->
+    <param name="scan_height" value="10"/>
+    <param name="output_frame_id" value="/camera_depth_frame"/>
+    <param name="range_min" value="0.45"/>
+    <remap from="image" to="/corrected_depth/image"/>
+    <remap from="scan" to="/corrected_scan"/>
+		<remap from="camera_info" to="/corrected_depth/camera_info" />
+    <remap from="$(arg camera)/image" to="/corrected_depth/image"/>
+    <remap from="$(arg camera)/scan" to="/corrected_scan"/>
+	</node>
+</launch>
