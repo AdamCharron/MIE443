@@ -16,6 +16,7 @@
 using namespace std;
 using namespace goofy;
 
+double rand_num = 1;
 bool bumperL = 0, bumperC = 0, bumperR = 0;
 double lRange = 10;
 int lSize = 0, lOffset = 0, dAngle = 5;
@@ -43,6 +44,12 @@ void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr& msg){
 
 void getNextPoint(geometry_msgs::Pose2D nextPose){
 	nextPoint = nextPose;
+}
+
+void timerCallback(const ros::TimerEvent& event) {
+//		ROS_INFO_STREAM("in timer");
+
+	rand_num *= -1;
 }
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
@@ -96,6 +103,8 @@ int main(int argc, char **argv)
 
 	ros::Subscriber next_coord_sub = nh.subscribe("goofCoord", 1, &getNextPoint);
 	//ros::Subscriber sub_odom = nh.subscribe("odom", 1, &callbackOdom);
+	
+	ros::Timer timer = nh.createTimer(ros::Duration(20), &timerCallback);
 
 	tf::TransformListener listener;
 
@@ -110,8 +119,8 @@ int main(int argc, char **argv)
 	common::BasicMotion turn_right{0.15,-0.15, 4000};
 	common::BasicMotion turn_sharp_left{0.15, 0.22, 3000};
 	common::BasicMotion turn_sharp_right{0.15, -0.22, 3000};
-	common::BasicMotion on_spot_right{0, -0.3, 2000};
-	common::BasicMotion on_spot_left{0, 0.3, 2000};
+	common::BasicMotion on_spot_right{0, -0.5, 500};
+	common::BasicMotion on_spot_left{0, 0.5, 500};
 
 	planner::MotionList motions;
 	motions.push_back(straight);
@@ -141,7 +150,7 @@ int main(int argc, char **argv)
 	}
 
 	if(curr_scan){
-		common::filterLaserScan(curr_scan, 50);
+		//common::filterLaserScan(curr_scan, 50);
 		random_planner.updateLaserScan(curr_scan);
 		random_planner.addSpin();
 	}
@@ -177,6 +186,7 @@ int main(int argc, char **argv)
 
 
 		// Update bumper values in random_planner
+		random_planner.rand_num = rand_num;
 		random_planner.bumperLeft = bumperL;
 		random_planner.bumperCenter = bumperC;
 		random_planner.bumperRight = bumperR;
@@ -185,7 +195,7 @@ int main(int argc, char **argv)
 
 		// Update laser values in random_planner
 		if(curr_scan) {
-			common::filterLaserScan(curr_scan, 50);
+			//common::filterLaserScan(curr_scan, 50);
 			random_planner.updateLaserScan(curr_scan);
 		}
 
@@ -194,7 +204,7 @@ int main(int argc, char **argv)
 		vis.publishPath(path, std::chrono::milliseconds(10));
 		if (!random_planner.getVelocity(vel) && curr_scan){
 			vel_pub.publish(stop); //need to publish a zero velocity here!
-			common::filterLaserScan(curr_scan, 50);
+			//common::filterLaserScan(curr_scan, 50);
 			random_planner.updateLaserScan(curr_scan);
 			random_planner.runIteration();
 			std::cout << "Getting new plan!" << std::endl;

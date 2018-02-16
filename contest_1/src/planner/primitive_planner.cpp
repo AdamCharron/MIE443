@@ -40,7 +40,7 @@ bool PrimitivePlanner::getVelocity(geometry_msgs::Twist& vel){
 					_new_plan = true;
 					common::BasicMotion back{-0.1, 0, 1000};
 					_plan.push_back(back);
-					common::BasicMotion recovery_turn_right{0, -0.3, 3000};
+					common::BasicMotion recovery_turn_right{0, -0.5, 2000};
 					_plan.push_back(recovery_turn_right);
 					_recovery = true;
 					return true;
@@ -58,7 +58,7 @@ bool PrimitivePlanner::getVelocity(geometry_msgs::Twist& vel){
 					_new_plan = true;
 					common::BasicMotion back{-0.1, 0, 1000};
 					_plan.push_back(back);
-					common::BasicMotion recovery_turn_right{0, -0.3, 3000};
+					common::BasicMotion recovery_turn_right{0,  -0.5 + (rand_num > 0.5), 2000};
 					_plan.push_back(recovery_turn_right);
 					_recovery = true;
 					return true;
@@ -73,9 +73,9 @@ bool PrimitivePlanner::getVelocity(geometry_msgs::Twist& vel){
 					_plan.clear();
 					_path.poses.clear();
 					_new_plan = true;
-					common::BasicMotion back{-0.1, 0, 1000};
+					common::BasicMotion back{-0.1, 0, 2000};
 					_plan.push_back(back);
-					common::BasicMotion recovery_turn_left{0, 0.3, 3000};
+					common::BasicMotion recovery_turn_left{0, 0.5, 1500};
 					_plan.push_back(recovery_turn_left);
 					_recovery = true;
 					return true;
@@ -90,7 +90,8 @@ bool PrimitivePlanner::getVelocity(geometry_msgs::Twist& vel){
 					_plan.clear();
 					_path.poses.clear();
 					_new_plan = true;
-					common::BasicMotion recovery_turn_right{0, -0.3, 6000};
+					std::cout << "Radn num:  " << rand_num << std::endl;
+					common::BasicMotion recovery_turn_right{0, -0.5 + (rand_num > 0.5) , 500};
 					_plan.push_back(recovery_turn_right);
 					_recovery = true;
 					return true;
@@ -130,9 +131,9 @@ bool PrimitivePlanner::getVelocity(geometry_msgs::Twist& vel){
 
 void PrimitivePlanner::addSpin(){
 	std::cout << "STARTED 360 SPIN" << std::endl;
-	common::BasicMotion rotate{0, 0.3, (int)((2*Pi*1000)/0.3)};
+	common::BasicMotion rotate{0, 0.5, (int)((2*Pi*2000)/0.5)};
 	_plan.push_back(rotate);
-	_recovery = false;
+	_recovery = true;
 	_new_plan = true;
 	std::cout << "Exiting spinonce fcn" << std::endl;
 }
@@ -215,20 +216,20 @@ void HeuristicPlanner::runIteration(){
 		if (target_angle < Pi){
 		    target_angle += Pi;
 		}
-		common::BasicMotion on_spot_aim{0, -0.3, (int)(1000*target_angle/0.3)};
-		_plan.push_back(on_spot_aim);
+		//common::BasicMotion on_spot_aim{0, -0.5, (int)(1000*target_angle/0.5)};
+		//_plan.push_back(on_spot_aim);
 		_new_plan = true;
 		std::cout << "[HP->runIter] New target point detected at (" << currentTargetPosition.x << ", " << currentTargetPosition.y << ")" << std::endl; 
-		std::cout << "[HP->runIter] Turning right (-0.3) for " << (int)(target_angle/0.3) << "s to face the angle: " << target_angle << std::endl;
+		//std::cout << "[HP->runIter] Turning right (-0.3) for " << (int)(target_angle/0.3) << "s to face the angle: " << target_angle << std::endl;
 		
-		return;
+		//return;
 	}
 	
 	getLocalTargetPosition();
 
 	// If already close to the target position, or there is no target position, randomly navigate
 	std::cout << "Endpoint distance: " << sqrt(pow(local_target_pose.x,2) + pow(local_target_pose.y,2)) << std::endl;
-	float redZone = 0.5;
+	float redZone = 1;
 	if (randomFlag || (sqrt(pow(local_target_pose.x,2) + pow(local_target_pose.y,2)) < redZone)){
 		std::cout << "[HP->runIter] TOO CLOSE TO THE ENDPOINT! Within " << sqrt(pow(local_target_pose.x,2) + pow(local_target_pose.y,2)) << "m. Danger zone is: " << redZone << "m." << std::endl;
 		std::cout << "[HP->runIter] Jumping over to RandomPlanner now!\n" << std::endl;
@@ -277,9 +278,10 @@ void HeuristicPlanner::runIteration(){
         if (optionsVector[i].valid){
             planned_path = optionsVector[i].index;
             //std::cout << "Checked path number: " << planned_path << std::endl;
-    		_vis.publishPath(_primitives.getPath(planned_path, common::BASE), std::chrono::milliseconds(500));
+    		_vis.publishPath(_primitives.getPath(planned_path, common::BASE), std::chrono::milliseconds(10));
 			std::cout << "[HP->runIter] Chose path: " << optionsVector[i].index << " => success: " << optionsVector[i].valid << ", euclid_dist: " << optionsVector[i].euclid_dist << std::endl;
-            break;
+			
+			break;
         }
     }
 
@@ -329,6 +331,9 @@ bool HeuristicPlanner::leftOrRightWhileStuck(){
 		Pick the one with the max value (more room to move)
 		Returns 0 for left, and 1 for right
 	*/
+
+    std::cout << "Radn num:  " << rand_num << std::endl;
+	return (rand_num > 0.5);
 
     return 0;   // Always turn left - make sure it won't get stuck in a corner
     
@@ -398,7 +403,7 @@ void WeightedPlanner::runIteration(){
 		//}
 		float outcome = checkPath(_primitives.getPath(i, common::BASE));    
         //std::cout << "Checked path number: " << i << std::endl;   
-		_vis.publishPath(_primitives.getPath(i, common::BASE), std::chrono::milliseconds(1000));
+		_vis.publishPath(_primitives.getPath(i, common::BASE), std::chrono::milliseconds(10));
         if (outcome >= max_outcome){
             max_path = i;
         }	
@@ -490,7 +495,7 @@ bool PrimitivePlanner::checkObstacle(float x_pos, float y_pos, float scan_angle)
 	    
 	    for(int i = index-scan_width; i <= index+scan_width; i++){
 			if(i >= 0 && i < laserSize){
-				if(tangent > (_scan->ranges[i] - 0.3) || std::isnan(_scan->ranges[i])){
+				if(tangent > (_scan->ranges[i] - 0.3)){
 					return true;	
 				}
 			}

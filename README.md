@@ -6,5 +6,3 @@ This team consists of:
   - Adam Charron
   - Fady Andraws
   - Grace Kumagai
-
-Full project can be seen at: https://github.com/kevinjen1/goofy-mie443
